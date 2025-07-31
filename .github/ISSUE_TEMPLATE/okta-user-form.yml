@@ -1,10 +1,8 @@
 name: "Create Okta User"
 description: "新しい Okta ユーザーを作成するフォーム"
-title: "[Oktaユーザー作成] "
+title: "[Oktaユーザー作成]"
 labels: ["okta"]
 assignees: []
-
-version: 2
 
 body:
   - type: input
