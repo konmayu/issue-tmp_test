@@ -1,23 +1,22 @@
-name: Provision Okta User
+name: Generate User JSON
 
 on:
   issues:
     types: [opened]
 
 jobs:
-  provision:
+  generate-json:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true  # Push に必要
 
-      - name: Extract form input from issue body
-        id: extract
+      - name: Extract values from issue body
         run: |
           echo "${{ github.event.issue.body }}" > issue_body.txt
-
-          # シンプルな抽出用スクリプト（Markdown項目から抽出）
           FIRST_NAME=$(grep -A1 "名" issue_body.txt | tail -n1 | xargs)
           LAST_NAME=$(grep -A1 "姓" issue_body.txt | tail -n1 | xargs)
           EMAIL=$(grep -A1 "メールアドレス" issue_body.txt | tail -n1 | xargs)
@@ -32,9 +31,14 @@ jobs:
           echo "LOCALE=$LOCALE" >> $GITHUB_ENV
           echo "EXTERNAL_ID=$EXTERNAL_ID" >> $GITHUB_ENV
 
-      - name: Build SCIM JSON
+      - name: Generate user JSON file
         run: |
-          cat <<EOF > user.json
+          mkdir -p public/users
+
+          FILENAME=$(echo "${EMAIL}" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')
+          JSON_PATH="public/users/${FILENAME}.json"
+
+          cat <<EOF > $JSON_PATH
           {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "${EMAIL}",
@@ -54,14 +58,13 @@ jobs:
           }
           EOF
 
-          cat user.json
+          echo "JSON_PATH=$JSON_PATH" >> $GITHUB_ENV
 
-      - name: Provision user to Okta (SCIM API)
-        env:
-          OKTA_SCIM_TOKEN: ${{ secrets.OKTA_SCIM_TOKEN }}
-          OKTA_SCIM_BASE: ${{ secrets.OKTA_SCIM_BASE }}
+      - name: Commit and push user JSON
         run: |
-          curl -X POST "$OKTA_SCIM_BASE/Users" \
-            -H "Authorization: Bearer $OKTA_SCIM_TOKEN" \
-            -H "Content-Type: application/scim+json" \
-            -d @user.json
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+
+          git add $JSON_PATH
+          git commit -m "Add JSON for ${EMAIL}"
+          git push
