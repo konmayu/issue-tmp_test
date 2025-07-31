@@ -1,0 +1,26 @@
+name: "Create Okta User"
+description: "新しい Okta ユーザーをプロビジョニングします"
+fields:
+  - id: given_name
+    type: text
+    label: "名"
+  - id: family_name
+    type: text
+    label: "姓"
+  - id: email
+    type: email
+    label: "メールアドレス"
+  - id: display_name
+    type: text
+    label: "表示名 (任意)"
+  - id: locale
+    type: dropdown
+    label: "ロケール"
+    options:
+      - label: "日本語 (ja-JP)"
+        value: "ja-JP"
+      - label: "英語 (en-US)"
+        value: "en-US"
+  - id: external_id
+    type: text
+    label: "外部 ID (任意)"
