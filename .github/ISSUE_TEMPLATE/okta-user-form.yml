@@ -1,0 +1,32 @@
+name: "Create Okta User"
+description: "新しい Okta ユーザーを作成するフォーム"
+title: "[Oktaユーザー作成] "
+labels: ["okta"]
+assignees: []
+
+version: 2
+
+body:
+  - type: input
+    id: given_name
+    attributes:
+      label: "名（First Name）"
+      placeholder: "Taro"
+    validations:
+      required: true
+
+  - type: input
+    id: family_name
+    attributes:
+      label: "姓（Last Name）"
+      placeholder: "Yamada"
+    validations:
+      required: true
+
+  - type: input
+    id: email
+    attributes:
+      label: "メールアドレス"
+      placeholder: "taro@example.com"
+    validations:
+      required: true
