@@ -1,0 +1,67 @@
+name: Provision Okta User
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Extract form input from issue body
+        id: extract
+        run: |
+          echo "${{ github.event.issue.body }}" > issue_body.txt
+
+          # シンプルな抽出用スクリプト（Markdown項目から抽出）
+          FIRST_NAME=$(grep -A1 "名" issue_body.txt | tail -n1 | xargs)
+          LAST_NAME=$(grep -A1 "姓" issue_body.txt | tail -n1 | xargs)
+          EMAIL=$(grep -A1 "メールアドレス" issue_body.txt | tail -n1 | xargs)
+          DISPLAY_NAME=$(grep -A1 "表示名" issue_body.txt | tail -n1 | xargs)
+          LOCALE=$(grep -A1 "ロケール" issue_body.txt | tail -n1 | xargs)
+          EXTERNAL_ID=$(grep -A1 "外部ID" issue_body.txt | tail -n1 | xargs)
+
+          echo "FIRST_NAME=$FIRST_NAME" >> $GITHUB_ENV
+          echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
+          echo "EMAIL=$EMAIL" >> $GITHUB_ENV
+          echo "DISPLAY_NAME=$DISPLAY_NAME" >> $GITHUB_ENV
+          echo "LOCALE=$LOCALE" >> $GITHUB_ENV
+          echo "EXTERNAL_ID=$EXTERNAL_ID" >> $GITHUB_ENV
+
+      - name: Build SCIM JSON
+        run: |
+          cat <<EOF > user.json
+          {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "${EMAIL}",
+            "name": {
+              "givenName": "${FIRST_NAME}",
+              "familyName": "${LAST_NAME}"
+            },
+            "displayName": "${DISPLAY_NAME}",
+            "emails": [{
+              "primary": true,
+              "value": "${EMAIL}",
+              "type": "work"
+            }],
+            "locale": "${LOCALE}",
+            "externalId": "${EXTERNAL_ID}",
+            "active": true
+          }
+          EOF
+
+          cat user.json
+
+      - name: Provision user to Okta (SCIM API)
+        env:
+          OKTA_SCIM_TOKEN: ${{ secrets.OKTA_SCIM_TOKEN }}
+          OKTA_SCIM_BASE: ${{ secrets.OKTA_SCIM_BASE }}
+        run: |
+          curl -X POST "$OKTA_SCIM_BASE/Users" \
+            -H "Authorization: Bearer $OKTA_SCIM_TOKEN" \
+            -H "Content-Type: application/scim+json" \
+            -d @user.json
