@@ -4,6 +4,9 @@ on:
   issues:
     types: [opened]
 
+permissions:
+  contents: write  # ✅ これが "git push" のために必須！
+
 jobs:
   generate-json:
     runs-on: ubuntu-latest
@@ -12,18 +15,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          persist-credentials: true  # git push のために必要
+          persist-credentials: true
 
       - name: Parse issue content
         run: |
           echo "${{ github.event.issue.body }}" > issue_body.txt
 
-          FIRST_NAME=$(grep -A1 "## 名" issue_body.txt | tail -n1 | xargs)
-          LAST_NAME=$(grep -A1 "## 姓" issue_body.txt | tail -n1 | xargs)
-          EMAIL=$(grep -A1 "## メールアドレス" issue_body.txt | tail -n1 | xargs)
-          DISPLAY_NAME=$(grep -A1 "## 表示名" issue_body.txt | tail -n1 | xargs)
-          LOCALE=$(grep -A1 "## ロケール" issue_body.txt | tail -n1 | xargs)
-          EXTERNAL_ID=$(grep -A1 "## 外部ID" issue_body.txt | tail -n1 | xargs)
+          # 柔軟な抽出（ヘッダが "## 名" などで始まる想定）
+          FIRST_NAME=$(grep -A1 "名" issue_body.txt | tail -n1 | xargs)
+          LAST_NAME=$(grep -A1 "姓" issue_body.txt | tail -n1 | xargs)
+          EMAIL=$(grep -A1 "メールアドレス" issue_body.txt | tail -n1 | xargs)
+          DISPLAY_NAME=$(grep -A1 "表示名" issue_body.txt | tail -n1 | xargs)
+          LOCALE=$(grep -A1 "ロケール" issue_body.txt | tail -n1 | xargs)
+          EXTERNAL_ID=$(grep -A1 "外部ID" issue_body.txt | tail -n1 | xargs)
+
+          # EMAIL 抽出失敗時の保険
+          if [ -z "$EMAIL" ]; then
+            echo "❌ メールアドレスが空です。Issue本文の形式を確認してください。"
+            cat issue_body.txt
+            exit 1
+          fi
 
           echo "FIRST_NAME=$FIRST_NAME" >> $GITHUB_ENV
           echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
@@ -39,7 +50,7 @@ jobs:
           FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')
           JSON_PATH="public/users/${FILENAME}.json"
 
-          cat <<EOF > $JSON_PATH
+          cat <<EOF > "$JSON_PATH"
           {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "$EMAIL",
@@ -66,6 +77,6 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
 
-          git add $JSON_PATH
+          git add "$JSON_PATH"
           git commit -m "Add user JSON for $EMAIL"
-          git push
+          git push origin HEAD
