@@ -21,19 +21,42 @@ jobs:
         run: |
           echo "${{ github.event.issue.body }}" > issue_body.txt
 
-          # Markdown形式の見出しに対応（### 見出し の次の行を抽出）
-          FIRST_NAME=$(awk '/^###.*名/{getline; print}' issue_body.txt | xargs)
-          LAST_NAME=$(awk '/^###.*姓/{getline; print}' issue_body.txt | xargs)
-          EMAIL=$(awk '/^###.*メールアドレス/{getline; print}' issue_body.txt | xargs)
-          DISPLAY_NAME=$(awk '/^###.*表示名/{getline; print}' issue_body.txt | xargs)
-          LOCALE=$(awk '/^###.*ロケール/{getline; print}' issue_body.txt | xargs)
-          EXTERNAL_ID=$(awk '/^###.*外部ID/{getline; print}' issue_body.txt | xargs)
+          # 共通抽出関数
+          get_value() {
+            awk -v key="$1" '
+              $0 ~ key {
+                found=1
+                next
+              }
+              found {
+                # 空行を飛ばす
+                while ($0 ~ /^[:space:]*$/) {getline}
+                print
+                exit
+              }
+            ' issue_body.txt | xargs
+          }
+
+          FIRST_NAME=$(get_value "名（First Name）")
+          LAST_NAME=$(get_value "姓（Last Name）")
+          EMAIL=$(get_value "メールアドレス")
+          DISPLAY_NAME=$(get_value "表示名")
+          LOCALE=$(get_value "ロケール")
+          EXTERNAL_ID=$(get_value "外部ID")
 
           if [ -z "$EMAIL" ]; then
             echo "❌ メールアドレスが空です。Issue本文の形式を確認してください。"
             cat issue_body.txt
             exit 1
           fi
+
+          echo "抽出結果:"
+          echo "FIRST_NAME=$FIRST_NAME"
+          echo "LAST_NAME=$LAST_NAME"
+          echo "EMAIL=$EMAIL"
+          echo "DISPLAY_NAME=$DISPLAY_NAME"
+          echo "LOCALE=$LOCALE"
+          echo "EXTERNAL_ID=$EXTERNAL_ID"
 
           echo "FIRST_NAME=$FIRST_NAME" >> $GITHUB_ENV
           echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
