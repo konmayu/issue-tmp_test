@@ -9,20 +9,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          persist-credentials: true  # Push に必要
+          persist-credentials: true  # git push のために必要
 
-      - name: Extract values from issue body
+      - name: Parse issue content
         run: |
           echo "${{ github.event.issue.body }}" > issue_body.txt
-          FIRST_NAME=$(grep -A1 "名" issue_body.txt | tail -n1 | xargs)
-          LAST_NAME=$(grep -A1 "姓" issue_body.txt | tail -n1 | xargs)
-          EMAIL=$(grep -A1 "メールアドレス" issue_body.txt | tail -n1 | xargs)
-          DISPLAY_NAME=$(grep -A1 "表示名" issue_body.txt | tail -n1 | xargs)
-          LOCALE=$(grep -A1 "ロケール" issue_body.txt | tail -n1 | xargs)
-          EXTERNAL_ID=$(grep -A1 "外部ID" issue_body.txt | tail -n1 | xargs)
+
+          FIRST_NAME=$(grep -A1 "## 名" issue_body.txt | tail -n1 | xargs)
+          LAST_NAME=$(grep -A1 "## 姓" issue_body.txt | tail -n1 | xargs)
+          EMAIL=$(grep -A1 "## メールアドレス" issue_body.txt | tail -n1 | xargs)
+          DISPLAY_NAME=$(grep -A1 "## 表示名" issue_body.txt | tail -n1 | xargs)
+          LOCALE=$(grep -A1 "## ロケール" issue_body.txt | tail -n1 | xargs)
+          EXTERNAL_ID=$(grep -A1 "## 外部ID" issue_body.txt | tail -n1 | xargs)
 
           echo "FIRST_NAME=$FIRST_NAME" >> $GITHUB_ENV
           echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
@@ -31,40 +32,40 @@ jobs:
           echo "LOCALE=$LOCALE" >> $GITHUB_ENV
           echo "EXTERNAL_ID=$EXTERNAL_ID" >> $GITHUB_ENV
 
-      - name: Generate user JSON file
+      - name: Create JSON file
         run: |
           mkdir -p public/users
 
-          FILENAME=$(echo "${EMAIL}" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')
+          FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')
           JSON_PATH="public/users/${FILENAME}.json"
 
           cat <<EOF > $JSON_PATH
           {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            "userName": "${EMAIL}",
+            "userName": "$EMAIL",
             "name": {
-              "givenName": "${FIRST_NAME}",
-              "familyName": "${LAST_NAME}"
+              "givenName": "$FIRST_NAME",
+              "familyName": "$LAST_NAME"
             },
-            "displayName": "${DISPLAY_NAME}",
+            "displayName": "$DISPLAY_NAME",
             "emails": [{
               "primary": true,
-              "value": "${EMAIL}",
+              "value": "$EMAIL",
               "type": "work"
             }],
-            "locale": "${LOCALE}",
-            "externalId": "${EXTERNAL_ID}",
+            "locale": "$LOCALE",
+            "externalId": "$EXTERNAL_ID",
             "active": true
           }
           EOF
 
           echo "JSON_PATH=$JSON_PATH" >> $GITHUB_ENV
 
-      - name: Commit and push user JSON
+      - name: Commit & Push JSON
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
 
           git add $JSON_PATH
-          git commit -m "Add JSON for ${EMAIL}"
+          git commit -m "Add user JSON for $EMAIL"
           git push
