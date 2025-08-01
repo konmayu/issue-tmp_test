@@ -5,7 +5,7 @@ on:
     types: [opened]
 
 permissions:
-  contents: write  # ✅ これが "git push" のために必須！
+  contents: write  # ✅ GITHUB_TOKEN に push 権限を与える
 
 jobs:
   generate-json:
@@ -21,15 +21,14 @@ jobs:
         run: |
           echo "${{ github.event.issue.body }}" > issue_body.txt
 
-          # 柔軟な抽出（ヘッダが "## 名" などで始まる想定）
-          FIRST_NAME=$(grep -A1 "名" issue_body.txt | tail -n1 | xargs)
-          LAST_NAME=$(grep -A1 "姓" issue_body.txt | tail -n1 | xargs)
-          EMAIL=$(grep -A1 "メールアドレス" issue_body.txt | tail -n1 | xargs)
-          DISPLAY_NAME=$(grep -A1 "表示名" issue_body.txt | tail -n1 | xargs)
-          LOCALE=$(grep -A1 "ロケール" issue_body.txt | tail -n1 | xargs)
-          EXTERNAL_ID=$(grep -A1 "外部ID" issue_body.txt | tail -n1 | xargs)
+          # Markdown形式の見出しに対応（### 見出し の次の行を抽出）
+          FIRST_NAME=$(awk '/^###.*名/{getline; print}' issue_body.txt | xargs)
+          LAST_NAME=$(awk '/^###.*姓/{getline; print}' issue_body.txt | xargs)
+          EMAIL=$(awk '/^###.*メールアドレス/{getline; print}' issue_body.txt | xargs)
+          DISPLAY_NAME=$(awk '/^###.*表示名/{getline; print}' issue_body.txt | xargs)
+          LOCALE=$(awk '/^###.*ロケール/{getline; print}' issue_body.txt | xargs)
+          EXTERNAL_ID=$(awk '/^###.*外部ID/{getline; print}' issue_body.txt | xargs)
 
-          # EMAIL 抽出失敗時の保険
           if [ -z "$EMAIL" ]; then
             echo "❌ メールアドレスが空です。Issue本文の形式を確認してください。"
             cat issue_body.txt
