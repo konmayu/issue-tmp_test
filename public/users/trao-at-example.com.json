@@ -1,0 +1,17 @@
+{
+  "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+  "userName": "trao@example.com",
+  "name": {
+    "givenName": "Taro",
+    "familyName": "Yamamo"
+  },
+  "displayName": "",
+  "emails": [{
+    "primary": true,
+    "value": "trao@example.com",
+    "type": "work"
+  }],
+  "locale": "",
+  "externalId": "",
+  "active": true
+}
