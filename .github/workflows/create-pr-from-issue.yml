@@ -1,0 +1,78 @@
+name: Create PR from Issue
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Parse issue body
+        run: |
+          echo "${{ github.event.issue.body }}" > issue_body.txt
+
+          get_value() {
+            awk -v key="$1" '
+              $0 ~ key {
+                found=1
+                next
+              }
+              found {
+                while ($0 ~ /^[:space:]*$/) {getline}
+                print
+                exit
+              }
+            ' issue_body.txt | xargs
+          }
+
+          FIRST_NAME=$(get_value "名")
+          LAST_NAME=$(get_value "姓")
+          EMAIL=$(get_value "メールアドレス")
+          DISPLAY_NAME=$(get_value "表示名")
+          LOCALE=$(get_value "ロケール")
+          EXTERNAL_ID=$(get_value "外部ID")
+
+          echo "EMAIL=$EMAIL" >> $GITHUB_ENV
+          echo "FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')" >> $GITHUB_ENV
+
+          mkdir -p user-json
+          cat <<EOF > user-json/${FILENAME}.json
+          {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "$EMAIL",
+            "name": {
+              "givenName": "$FIRST_NAME",
+              "familyName": "$LAST_NAME"
+            },
+            "displayName": "$DISPLAY_NAME",
+            "emails": [{
+              "primary": true,
+              "value": "$EMAIL",
+              "type": "work"
+            }],
+            "locale": "$LOCALE",
+            "externalId": "$EXTERNAL_ID",
+            "active": true
+          }
+          EOF
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add user JSON for ${{ env.EMAIL }}"
+          branch: user-json-${{ github.run_id }}
+          title: "Provision request for ${{ env.EMAIL }}"
+          body: |
+            ユーザー情報のプロビジョニングリクエストです。
+            内容を確認し、承認後にマージしてください。
+          add-paths: user-json/*.json
