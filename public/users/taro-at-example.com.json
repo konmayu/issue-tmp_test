@@ -2,8 +2,8 @@
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
   "userName": "taro@example.com",
   "name": {
-    "givenName": "ta",
-    "familyName": "yama"
+    "givenName": "taro",
+    "familyName": "taro"
   },
   "displayName": "",
   "emails": [{
