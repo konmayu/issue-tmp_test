@@ -1,0 +1,17 @@
+{
+  "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+  "userName": "new1648@example.com",
+  "name": {
+    "givenName": "new1648",
+    "familyName": "new1648"
+  },
+  "displayName": "new1648 new1648",
+  "emails": [{
+    "primary": true,
+    "value": "new1648@example.com",
+    "type": "work"
+  }],
+  "locale": "ja-JP",
+  "externalId": "new1648@example.com",
+  "active": true
+}
