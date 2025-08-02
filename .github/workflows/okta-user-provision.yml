@@ -1,8 +1,9 @@
+---
 name: Provision Okta User from Issue
 
-on:
+'on':
   issues:
-    types: [opened, reopened, edited]
+    types: [opened]
 
 permissions:
   contents: write
@@ -46,8 +47,12 @@ jobs:
           echo "EMAIL=$EMAIL" >> $GITHUB_ENV
           echo "REVIEWER=$REVIEWER" >> $GITHUB_ENV
 
-          FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')
-          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+            FILENAME=$(echo "$EMAIL" \
+              | sed 's/@/-at-/g' \
+              | sed 's/[^a-zA-Z0-9._-]//g')
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            FILENAME="${FILENAME}-${TIMESTAMP}"
+            echo "FILENAME=$FILENAME" >> $GITHUB_ENV
 
       - name: Create JSON file
         run: |
@@ -81,6 +86,6 @@ jobs:
           body: |
             🎯 Oktaユーザー作成のPRです。
             内容を確認し、レビュワーは ${{ env.REVIEWER }} です。
-          add-paths: user-json/*.json
+          add-paths: user-json/${{ env.FILENAME }}.json
           reviewers: ${{ env.REVIEWER }}
           token: ${{ secrets.GITHUB_TOKEN }}

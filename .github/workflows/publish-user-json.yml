@@ -1,0 +1,40 @@
+---
+name: Publish approved Okta user
+
+'on':
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'user-json-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Copy JSON to GitHub Pages
+        run: |
+          mkdir -p public/users public/notifications
+          CHANGED_FILES=$(git diff --name-only \
+            ${{ github.event.pull_request.base.sha }} \
+            ${{ github.event.pull_request.merge_commit_sha }} \
+            | grep '^user-json/' || true)
+          for file in $CHANGED_FILES; do
+            base=$(basename "$file")
+            cp "$file" "public/users/$base"
+            echo "User JSON $base has been approved" \
+              > "public/notifications/${base%.json}.txt"
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add public/users public/notifications
+          git commit -m "Publish approved user JSON" \
+            || echo "No changes to commit"
+          git push
