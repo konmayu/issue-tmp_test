@@ -1,9 +1,9 @@
 ---
 name: Provision Okta User from Issue
 
-'on':
+on:
   issues:
-    types: [labeled]
+    types: [opened]
 
 permissions:
   contents: write
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   provision-okta-user:
-    if: github.event.label.name == 'okta-user-request'
+    if: startsWith(github.event.issue.title, '【Okta User Request】')
     runs-on: ubuntu-latest
 
     steps:
@@ -19,45 +19,31 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Parse issue body
-        id: parse
         run: |
           echo "${{ github.event.issue.body }}" > issue_body.txt
 
           get_value() {
             awk -v key="$1" '
-              $0 ~ key {
-                found=1
-                next
-              }
+              $0 ~ key {found=1; next}
               found {
                 while ($0 ~ /^[:space:]*$/) {getline}
-                print
-                exit
-              }
-            ' issue_body.txt | xargs
+                print; exit
+              }' issue_body.txt | xargs
           }
 
           FIRST_NAME=$(get_value "名（First Name）")
           LAST_NAME=$(get_value "姓（Last Name）")
           EMAIL=$(get_value "メールアドレス")
-          REVIEWER=$(get_value "レビュワー")
+          REVIEWER=$(get_value "レビュワーを選択")
 
           echo "FIRST_NAME=$FIRST_NAME" >> $GITHUB_ENV
           echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
           echo "EMAIL=$EMAIL" >> $GITHUB_ENV
           echo "REVIEWER=$REVIEWER" >> $GITHUB_ENV
-          echo "Parsed values:" \
-            "FIRST_NAME=$FIRST_NAME" \
-            "LAST_NAME=$LAST_NAME" \
-            "EMAIL=$EMAIL" \
-            "REVIEWER=$REVIEWER"
 
-          FILENAME=$(echo "$EMAIL" \
-            | sed 's/@/-at-/g' \
-            | sed 's/[^a-zA-Z0-9._-]//g')
+          FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
           FILENAME="${FILENAME}-${TIMESTAMP}"
-          echo "Generated filename: $FILENAME"
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV
 
       - name: Create JSON file
