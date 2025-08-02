@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   provision-okta-user:
-    if: contains(github.event.issue.labels.*.name, 'okta-user-request')
+    if: startsWith(github.event.issue.title, '【Okta User Request】')
     runs-on: ubuntu-latest
 
     steps:
@@ -39,17 +39,13 @@ jobs:
           FIRST_NAME=$(get_value "名（First Name）")
           LAST_NAME=$(get_value "姓（Last Name）")
           EMAIL=$(get_value "メールアドレス")
-          DISPLAY_NAME=$(get_value "表示名")
-          LOCALE=$(get_value "ロケール")
-          EXTERNAL_ID=$(get_value "外部ID")
+          DISPLAY_NAME="${FIRST_NAME} ${LAST_NAME}"
 
           echo "EMAIL=$EMAIL" >> $GITHUB_ENV
           echo "FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')" >> $GITHUB_ENV
           echo "FIRST_NAME=$FIRST_NAME" >> $GITHUB_ENV
           echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
           echo "DISPLAY_NAME=$DISPLAY_NAME" >> $GITHUB_ENV
-          echo "LOCALE=$LOCALE" >> $GITHUB_ENV
-          echo "EXTERNAL_ID=$EXTERNAL_ID" >> $GITHUB_ENV
 
       - name: Create JSON file
         run: |
@@ -68,8 +64,6 @@ jobs:
               "value": "$EMAIL",
               "type": "work"
             }],
-            "locale": "$LOCALE",
-            "externalId": "$EXTERNAL_ID",
             "active": true
           }
           EOF
