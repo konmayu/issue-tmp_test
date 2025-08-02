@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   provision-okta-user:
-    if: startsWith(github.event.issue.title, '【Okta User Request】')
+    if: contains(github.event.issue.labels.*.name, 'okta-user-request')
     runs-on: ubuntu-latest
 
     steps:
@@ -39,13 +39,15 @@ jobs:
           FIRST_NAME=$(get_value "名（First Name）")
           LAST_NAME=$(get_value "姓（Last Name）")
           EMAIL=$(get_value "メールアドレス")
-          DISPLAY_NAME="${FIRST_NAME} ${LAST_NAME}"
+          REVIEWER=$(get_value "レビュワー")
 
-          echo "EMAIL=$EMAIL" >> $GITHUB_ENV
-          echo "FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')" >> $GITHUB_ENV
           echo "FIRST_NAME=$FIRST_NAME" >> $GITHUB_ENV
           echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
-          echo "DISPLAY_NAME=$DISPLAY_NAME" >> $GITHUB_ENV
+          echo "EMAIL=$EMAIL" >> $GITHUB_ENV
+          echo "REVIEWER=$REVIEWER" >> $GITHUB_ENV
+
+          FILENAME=$(echo "$EMAIL" | sed 's/@/-at-/g' | sed 's/[^a-zA-Z0-9._-]//g')
+          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
 
       - name: Create JSON file
         run: |
@@ -58,12 +60,14 @@ jobs:
               "givenName": "$FIRST_NAME",
               "familyName": "$LAST_NAME"
             },
-            "displayName": "$DISPLAY_NAME",
+            "displayName": "$FIRST_NAME $LAST_NAME",
             "emails": [{
               "primary": true,
               "value": "$EMAIL",
               "type": "work"
             }],
+            "locale": "ja-JP",
+            "externalId": "$EMAIL",
             "active": true
           }
           EOF
@@ -75,6 +79,8 @@ jobs:
           branch: user-json-${{ github.run_id }}
           title: "Provision request for ${{ env.EMAIL }}"
           body: |
-            🎯 Oktaユーザー作成のPRです。内容を確認し、マージするとプロビジョニングが完了します。
+            🎯 Oktaユーザー作成のPRです。
+            内容を確認し、レビュワーは ${{ env.REVIEWER }} です。
           add-paths: user-json/*.json
+          reviewers: ${{ env.REVIEWER }}
           token: ${{ secrets.GITHUB_TOKEN }}
