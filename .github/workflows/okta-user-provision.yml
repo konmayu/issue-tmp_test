@@ -3,7 +3,7 @@ name: Provision Okta User from Issue
 
 'on':
   issues:
-    types: [opened]
+    types: [labeled]
 
 permissions:
   contents: write
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   provision-okta-user:
-    if: contains(github.event.issue.labels.*.name, 'okta-user-request')
+    if: github.event.label.name == 'okta-user-request'
     runs-on: ubuntu-latest
 
     steps:
@@ -46,13 +46,19 @@ jobs:
           echo "LAST_NAME=$LAST_NAME" >> $GITHUB_ENV
           echo "EMAIL=$EMAIL" >> $GITHUB_ENV
           echo "REVIEWER=$REVIEWER" >> $GITHUB_ENV
+          echo "Parsed values:" \
+            "FIRST_NAME=$FIRST_NAME" \
+            "LAST_NAME=$LAST_NAME" \
+            "EMAIL=$EMAIL" \
+            "REVIEWER=$REVIEWER"
 
-            FILENAME=$(echo "$EMAIL" \
-              | sed 's/@/-at-/g' \
-              | sed 's/[^a-zA-Z0-9._-]//g')
-            TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            FILENAME="${FILENAME}-${TIMESTAMP}"
-            echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+          FILENAME=$(echo "$EMAIL" \
+            | sed 's/@/-at-/g' \
+            | sed 's/[^a-zA-Z0-9._-]//g')
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          FILENAME="${FILENAME}-${TIMESTAMP}"
+          echo "Generated filename: $FILENAME"
+          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
 
       - name: Create JSON file
         run: |
