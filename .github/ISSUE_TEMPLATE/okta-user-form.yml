@@ -2,7 +2,6 @@ name: "Create Okta User"
 description: Oktaへの新規ユーザー登録のリクエストフォーム
 title: "【Okta User Request】"
 labels: ["okta-user-request"]
-assignees: []
 
 body:
   - type: input
@@ -26,5 +25,16 @@ body:
     attributes:
       label: "メールアドレス"
       placeholder: "taro@example.com"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reviewer
+    attributes:
+      label: "レビュワーを選択"
+      description: "このユーザーJSONを確認するレビュワーを選んでください"
+      options:
+        - konmayu
+        - yusuke-okazaki
     validations:
       required: true
